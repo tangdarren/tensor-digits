@@ -31,3 +31,8 @@ def test_app_compiles():
     import py_compile
 
     py_compile.compile(str(ROOT / "app.py"), doraise=True)
+
+
+def test_drawable_canvas_dependency_declared():
+    requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+    assert "streamlit-drawable-canvas" in requirements
