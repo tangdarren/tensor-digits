@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 
+from src.insights import (
+    artifacts_available,
+    build_insight_bundle,
+    figure_confusion_matrix,
+    figure_misclassified_examples,
+    figure_training_curves,
+    load_insight_sources,
+)
 from src.preprocessing import BlankDrawingError, InvalidDrawingError
 from src.prediction import PredictionResult, get_model, predict_digit
-from src.training import MODEL_PATH
+from src.training import EVALUATION_PATH, HISTORY_PATH, MODEL_PATH
 
 CANVAS_SIZE = 280
 STROKE_WIDTH = 18
@@ -197,6 +206,18 @@ st.markdown(
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
         }
+
+        .td-insights-summary {
+            font-size: 0.95rem;
+            color: #333333;
+            margin: 0 0 1rem 0;
+            line-height: 1.5;
+        }
+
+        div[data-testid="stExpander"] {
+            border: 2px solid #000000;
+            background: #FFFFFF;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -209,6 +230,122 @@ def load_cached_model():
     if not MODEL_PATH.exists():
         return None
     return get_model(MODEL_PATH)
+
+
+@st.cache_resource(show_spinner="Preparing model insights…")
+def load_cached_insights():
+    """Compute evaluation insights once per process."""
+    if not artifacts_available():
+        return None
+    return build_insight_bundle()
+
+
+def render_model_insights() -> None:
+    """Collapsed insights panel kept secondary to the drawing UI."""
+    with st.expander("Model insights", expanded=False):
+        if not (HISTORY_PATH.exists() and EVALUATION_PATH.exists()):
+            st.markdown(
+                '<p class="td-insights-summary">'
+                "Training artifacts are missing. Run <code>python train.py</code> "
+                "to generate history and evaluation metrics."
+                "</p>",
+                unsafe_allow_html=True,
+            )
+            return
+
+        try:
+            history, evaluation = load_insight_sources()
+        except Exception as exc:  # noqa: BLE001
+            st.markdown(
+                f'<div class="td-error">Could not load training artifacts: {exc}</div>',
+                unsafe_allow_html=True,
+            )
+            return
+
+        accuracy = float(evaluation.get("test_accuracy", 0.0)) * 100.0
+        loss = float(evaluation.get("test_loss", 0.0))
+        st.markdown(
+            f'<p class="td-insights-summary">'
+            f"Test accuracy <strong>{accuracy:.2f}%</strong> · "
+            f"test loss <strong>{loss:.4f}</strong> · "
+            f"{int(evaluation.get('num_test_samples', 0)):,} MNIST test images"
+            f"</p>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<p class="td-section-label">Training curves</p>', unsafe_allow_html=True)
+        fig_curves = figure_training_curves(history)
+        st.pyplot(fig_curves, clear_figure=True)
+        plt_close(fig_curves)
+
+        st.markdown('<p class="td-section-label">Test-set analysis</p>', unsafe_allow_html=True)
+        if not MODEL_PATH.exists():
+            st.markdown(
+                '<p class="td-insights-summary">'
+                "Saved model not found, so the confusion matrix and error gallery "
+                "cannot be generated."
+                "</p>",
+                unsafe_allow_html=True,
+            )
+            return
+
+        # Defer the MNIST re-evaluation until requested so drawing stays snappy.
+        if st.button("Load confusion matrix & errors", use_container_width=True):
+            st.session_state.show_deep_insights = True
+
+        if not st.session_state.get("show_deep_insights"):
+            st.markdown(
+                '<p class="td-insights-summary">'
+                "Training curves load instantly from saved history. Click above to "
+                "evaluate the test set for a confusion matrix and sample mistakes."
+                "</p>",
+                unsafe_allow_html=True,
+            )
+            return
+
+        try:
+            bundle = load_cached_insights()
+        except Exception as exc:  # noqa: BLE001
+            st.markdown(
+                f'<div class="td-error">Could not compute model insights: {exc}</div>',
+                unsafe_allow_html=True,
+            )
+            return
+
+        if bundle is None:
+            st.markdown(
+                '<p class="td-insights-summary">Model insights are unavailable.</p>',
+                unsafe_allow_html=True,
+            )
+            return
+
+        st.markdown('<p class="td-section-label">Confusion matrix</p>', unsafe_allow_html=True)
+        fig_cm = figure_confusion_matrix(bundle.confusion_matrix)
+        st.pyplot(fig_cm, clear_figure=True)
+        plt_close(fig_cm)
+
+        st.markdown(
+            '<p class="td-section-label">Incorrect predictions</p>',
+            unsafe_allow_html=True,
+        )
+        fig_errors = figure_misclassified_examples(
+            bundle.error_images,
+            bundle.error_true,
+            bundle.error_pred,
+        )
+        if fig_errors is None:
+            st.markdown(
+                '<p class="td-insights-summary">No misclassified test examples found.</p>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.pyplot(fig_errors, clear_figure=True)
+            plt_close(fig_errors)
+
+
+def plt_close(fig) -> None:
+    """Close a Matplotlib figure to avoid memory growth across Streamlit reruns."""
+    plt.close(fig)
 
 
 def render_probability_breakdown(result: PredictionResult) -> None:
@@ -384,3 +521,6 @@ else:
         "</div>",
         unsafe_allow_html=True,
     )
+
+st.markdown("<br/>", unsafe_allow_html=True)
+render_model_insights()

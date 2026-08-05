@@ -46,6 +46,22 @@ def test_saved_model_artifacts_exist_and_load():
     assert 0.0 <= evaluation["test_accuracy"] <= 1.0
 
 
+def test_saved_model_loads_and_predicts_expected_shape():
+    if not MODEL_PATH.exists():
+        pytest.skip("Trained model not present yet — run `python train.py` first.")
+
+    model = load_model(MODEL_PATH)
+    sample = np.zeros((1, 28, 28, 1), dtype=np.float32)
+    sample[0, 5:22, 10:18, 0] = 1.0
+    output = model.predict(sample, verbose=0)
+
+    assert model.input_shape == (None, 28, 28, 1)
+    assert output.shape == (1, 10)
+    assert output.dtype == np.float32 or str(output.dtype).startswith("float")
+    assert pytest.approx(float(output.sum()), abs=1e-4) == 1.0
+    assert 0 <= int(np.argmax(output[0])) <= 9
+
+
 def test_data_shapes_smoke():
     # Avoid re-downloading in unit tests if Keras cache is cold; skip if unavailable.
     try:
