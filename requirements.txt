@@ -1,0 +1,5 @@
+streamlit>=1.32.0
+tensorflow>=2.15.0
+numpy>=1.24.0
+Pillow>=10.0.0
+pytest>=8.0.0
