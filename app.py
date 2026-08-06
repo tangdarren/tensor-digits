@@ -115,7 +115,7 @@ st.markdown(
         }
 
         .td-digit {
-            font-size: 5.5rem;
+            font-size: clamp(6rem, 12vw, 7rem);
             font-weight: 700;
             line-height: 1;
             letter-spacing: -0.04em;
