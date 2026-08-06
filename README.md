@@ -8,7 +8,7 @@ Draw a digit from 0–9 on a black canvas. The app converts the stroke into an M
 
 ## Project Preview
 
-![TensorDigits predicting a handwritten 7 with 95.1% confidence](assets/screenshots/prediction-demo.png)
+![TensorDigits predicting a handwritten 7 with 86.2% confidence](assets/screenshots/prediction-demo.png)
 
 *Draw a digit, click Predict, and see the model’s top class with confidence.*
 

@@ -104,7 +104,7 @@ st.markdown(
         .td-predict-panel {
             border: 2px solid #000000;
             background: #FFFFFF;
-            min-height: 140px;
+            min-height: 12rem;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -112,15 +112,18 @@ st.markdown(
             padding: 1.25rem 1.25rem 1rem 1.25rem;
             margin-bottom: 1rem;
             text-align: center;
+            overflow: hidden;
         }
 
-        .td-digit {
-            font-size: clamp(6rem, 12vw, 7rem);
-            font-weight: 700;
-            line-height: 1;
+        /* Beat Streamlit's default .stMarkdown p font-size so the digit actually enlarges. */
+        div[data-testid="stMarkdownContainer"] div.td-predict-panel p.td-digit {
+            font-size: clamp(6rem, 12vw, 10rem) !important;
+            font-weight: 600 !important;
+            line-height: 1 !important;
+            text-align: center !important;
             letter-spacing: -0.04em;
             color: #000000;
-            margin: 0;
+            margin: 0 !important;
         }
 
         .td-digit-placeholder {
@@ -487,8 +490,20 @@ if error_message:
 
 st.markdown('<p class="td-section-label">Prediction</p>', unsafe_allow_html=True)
 if prediction is not None:
+    # Inline styles guarantee the size even when Streamlit markdown CSS wins
+    # over a bare class selector.
     st.markdown(
-        f'<div class="td-predict-panel"><p class="td-digit">{prediction.digit}</p></div>',
+        f'<div class="td-predict-panel">'
+        f'<p class="td-digit" style="'
+        f"font-size:clamp(6rem, 12vw, 10rem);"
+        f"font-weight:600;"
+        f"line-height:1;"
+        f"text-align:center;"
+        f"letter-spacing:-0.04em;"
+        f"color:#000000;"
+        f"margin:0;"
+        f'">{prediction.digit}</p>'
+        f"</div>",
         unsafe_allow_html=True,
     )
 else:
