@@ -75,16 +75,24 @@ st.markdown(
             margin: 0 0 0.6rem 0;
         }
 
-        div[data-testid="stIFrame"] {
+        /* Keep the drawable-canvas iframe at the real canvas size so it
+           does not stretch into an empty bordered region beside the square. */
+        div[data-testid="stIFrame"]:has(iframe[title="streamlit_drawable_canvas.st_canvas"]) {
             display: flex;
             justify-content: center;
-            margin-bottom: 0.85rem;
+            margin: 0 auto 0.85rem auto;
+            width: 280px;
+            max-width: 100%;
         }
 
         iframe[title="streamlit_drawable_canvas.st_canvas"] {
             border: 2px solid #000000 !important;
             display: block;
             margin: 0 auto;
+            width: 280px !important;
+            min-width: 280px !important;
+            max-width: 280px !important;
+            height: 280px !important;
         }
 
         div[data-testid="stHorizontalBlock"] button {
